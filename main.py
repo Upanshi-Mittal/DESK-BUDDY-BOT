@@ -11,7 +11,11 @@ def run_vision_system():
     try:
         start_vision_sensor()
     except Exception as e:
+        # NEW: don't let a camera-related crash look like a full system failure.
+        # vision_sensor.py now exits cleanly on its own when no camera is found,
+        # but this catch stays as a safety net for any other unexpected error.
         print(f"[Master Node] Vision System Thread Crashed: {e}")
+        print("[Master Node] Continuing without the vision (webcam) tracker.")
 
 def run_window_tracker():
     print("[Master Node] Spawning Application Polling Window Thread... ")
@@ -38,5 +42,10 @@ if __name__ == "__main__":
     try:
         while True:
             time.sleep(1)
+            # NEW: let the user know if vision tracking died but the app is still running
+            if not vision_thread.is_alive() and not getattr(run_vision_system, "_warned", False):
+                print("[Master Node] Note: vision (webcam) tracking is not running. "
+                      "Window tracking continues normally.")
+                run_vision_system._warned = True
     except KeyboardInterrupt:
         print("\n[Master Node] All tracking loops successfully disconnected. Stay productive!")
